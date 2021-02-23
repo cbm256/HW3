@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../lib/d3.v5.min.js"></script>
+<style type="text/css">
+  .line {
+      fill: none;
+      stroke: #ffab00;
+      stroke-width: 3;
+  }
+    
+  .overlay {
+    fill: none;
+    pointer-events: all;
+  }
+  
+  .dot {
+      fill: #ffab00;
+      stroke: #fff;
+  }
+    
+    .focus circle {
+    fill: none;
+    stroke: steelblue;
+  }
+
+</style>
+<body>
+<script>
+
+var dataset = []
+//DateTimeFormatter f = DateTimeFormat.forPattern("%b %y");
+
+var parseTime = d3.timeParse("%m/%d/%Y");
+var formatTime = d3.timeFormat("%b %y");
+var colors = ['#FFC300', '#FF5733', '#C70039', '#900C3F']
+var types = ["CatanCount","DominionCount","CodenamesCount","TeraformingMarsCount",
+             "GloomhavenCount", "MagicTheGatheringCount", "DixitCount", "MonopolyCount"]
+
+d3.dsv(",", "boardgame_ratings.csv", function(d) {
+        return{
+            date : formatTime(parseTime(d["date"])),
+            CatanCount : + d["Catan=count"],
+            CatanCountRank : + d["Catan=rank"],
+            DominionCount : + d["Dominion=count"],
+            DominionRank : + d["Dominion=rank"],
+            CodenamesCount : + d["Codenames=count"],
+            CodenamesRank : + d["Codenames=rank"],
+            TerraformingMarsCount : + d["Terraforming Mars=count"],
+            TerraformingMarsRank : + d["Terraforming Mars=rank"],
+            GloomhavenCount : + d["Gloomhaven=count"],
+            GloomhavenRank : + d["Gloomhaven=rank"],
+            MagicTheGatheringCount : + d["Magic: The Gathering=count"],
+            MagicTheGatheringRank : + d["Magic: The Gathering=rank"],
+            DixitCount : + d["Dixit=count"],
+            DixitRank : + d["Dixit=rank"],
+            MonopolyCount : + d["Monopoly=count"],
+            MonopolyRank : + d["Monopoly=rank"]
+        };
+    }).then(function(data) {
+            console.log(data);
+
+  var links = data
+  console.log(links[33])
+  var n = links.length   
+  console.log(n)
+
+  
+ 
+  // set margins
+  var margin = {top: 50, right: 50, bottom: 50, left: 50},
+      width = window.innerWidth - margin.left - margin.right,
+      height = window.innerHeight - margin.top - margin.bottom; 
+
+  // scale x and y axis
+  var xScale = d3.scaleTime()
+      .domain([d3.min(data, function(d) {return d["date"]; }),d3.max(data, function(d) {return d["date"]; })])
+      .range([50, width-50]); 
+
+  var yScale = d3.scaleLinear()
+      .domain([d3.min(data, function(d) {return Math.min(d["CatanCount"], d["DominionCount"], 
+                                                         d["CodenamesCount"], d["TeraformingMarsCount"],
+                                                         d["GloomhavenCount"], d["MagicTheGatheringCount"], 
+                                                         d["DixitCount"], d["MonopolyCount"]);}),
+               d3.max(data, function(d) {return Math.max(d["CatanCount"], d["DominionCount"], 
+                                                         d["CodenamesCount"], d["TeraformingMarsCount"],
+                                                         d["GloomhavenCount"], d["MagicTheGatheringCount"], 
+                                                         d["DixitCount"], d["MonopolyCount"]);})])
+                .range([height-50, 50]);
+
+                
+//var rScale = d3.scaleLinear()
+//    .domain([d3.min(data, function(d) {return d["Number of Ratings"];}), d3.max(data, function(d) {return d["Estimated Deaths"];})])
+//    .range([5,15])
+//console.log(d3.min(data, function(d) {return d["8.0+"];}), d3.max(data, function(d) {return d["8.0+"];}));
+
+// define axis
+var xAxis = d3.axisBottom(xScale).tickFormat(formatTime)
+    .tickValues(d3.timeYear.every(3).range(d3.min(data, function(d) { return d["date"]; }),
+                d3.max(data, function(d) { return d["date"]; })));
+
+var yAxis = d3.axisLeft(yScale).ticks(10);
+
+
+
+
+
+//define lines
+var line1 = d3.line()
+    .x(function(d) { return xScale(d["date"]); }) 
+    .y(function(d) { return yScale(d["CatanCount"]); })  
+    .curve(d3.curveMonotoneX) 
+
+var line2 = d3.line()
+    .x(function(d) { return xScale(d["date"]); }) 
+    .y(function(d) { return yScale(d["DominionCount"]); })  
+    //.curve(d3.curveMonotoneX) or .curve(d3.curveLinear)
+
+var line3 = d3.line()
+    .x(function(d) { return xScale(d["date"]); }) 
+    .y(function(d) { return yScale(d["CodenamesCount"]); })  
+    //.curve(d3.curveMonotoneX) or .curve(d3.curveLinear)
+
+var line4 = d3.line()
+    .x(function(d) { return xScale(d["date"]); }) 
+    .y(function(d) { return yScale(d["TeraformingMarsCount"]); })  
+    //.curve(d3.curveMonotoneX) or .curve(d3.curveLinear)
+
+    var line1 = d3.line()
+    .x(function(d) { return xScale(d["date"]); }) 
+    .y(function(d) { return yScale(d["GloomhavenCount"]); })  
+    //.curve(d3.curveMonotoneX) or .curve(d3.curveLinear)
+
+var line2 = d3.line()
+    .x(function(d) { return xScale(d["date"]); }) 
+    .y(function(d) { return yScale(d["MagicTheGatheringCount"]); })  
+    //.curve(d3.curveMonotoneX) or .curve(d3.curveLinear)
+
+var line3 = d3.line()
+    .x(function(d) { return xScale(d["date"]); }) 
+    .y(function(d) { return yScale(d["DixitCount"]); })  
+    //.curve(d3.curveMonotoneX) or .curve(d3.curveLinear)
+
+var line4 = d3.line()
+    .x(function(d) { return xScale(d["date"]); }) 
+    .y(function(d) { return yScale(d["MonopolyCount"]); })  
+    //.curve(d3.curveMonotoneX) or .curve(d3.curveLinear)
+
+
+// figure 1
+var svg1 = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// add title
+svg1.append("text")
+    .attr("x", width/ 2 )
+    .attr("y", 0)
+    .style("font-weight","bold")
+    .style("text-anchor", "middle")
+    .style("font-size", "25px")
+    .text("Number of Ratings 2016-2020 (Log Scale)");
+
+
+
+
+
+
+
+
+});
+
+
+
+</script>
+</body>
+</html>
