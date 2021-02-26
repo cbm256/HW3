@@ -29,11 +29,17 @@
 
 var parseDate = d3.timeParse("%m/%d/%Y");
 
+// set margins
+var margin = {top: 50, right: 200, bottom: 50, left: 100},
+    width = 980- margin.left - margin.right,
+    height = 750 - margin.top - margin.bottom,
+    offset = 10; 
+
 d3.dsv(",", "boardgame_ratings.csv", function(d) {
     return{
         date: parseDate(d["date"]),
         CatanCount : + d["Catan=count"],
-        CatanCountRank : + d["Catan=rank"],
+        CatanRank : + d["Catan=rank"],
         DominionCount : + d["Dominion=count"],
         DominionRank : + d["Dominion=rank"],
         CodenamesCount : + d["Codenames=count"],
@@ -54,124 +60,236 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
 
     console.log('data', data);
     const featureList = [
-        {feature: "CatanCount", name: "Catan", colorIndex: d3.schemeCategory10[0]}, 
-        {feature: "DominionCount", name: "Dominion", colorIndex: d3.schemeCategory10[1]}, 
-        {feature: "CodenamesCount", name: "Codenames", colorIndex: d3.schemeCategory10[2]},
-        {feature: "TerraformingMarsCount", name: "Terraforming Mars", colorIndex: d3.schemeCategory10[3]},
-        {feature: "GloomhavenCount", name: "Gloomhaven", colorIndex: d3.schemeCategory10[4]}, 
-        {feature: "MagicTheGatheringCount", name: "Magic: The Gathering", colorIndex: d3.schemeCategory10[5]}, 
-        {feature: "DixitCount", name: "Dixit", colorIndex: d3.schemeCategory10[6]}, 
-        {feature: "MonopolyCount", name: "Monopoly", colorIndex: d3.schemeCategory10[7]}
+        {feature: "Catan", name: "Catan", colorIndex: d3.schemeCategory10[0]}, 
+        {feature: "Dominion", name: "Dominion", colorIndex: d3.schemeCategory10[1]}, 
+        {feature: "Codenames", name: "Codenames", colorIndex: d3.schemeCategory10[2]},
+        {feature: "TerraformingMars", name: "Terraforming Mars", colorIndex: d3.schemeCategory10[3]},
+        {feature: "Gloomhaven", name: "Gloomhaven", colorIndex: d3.schemeCategory10[4]}, 
+        {feature: "MagicTheGathering", name: "Magic: The Gathering", colorIndex: d3.schemeCategory10[5]}, 
+        {feature: "Dixit", name: "Dixit", colorIndex: d3.schemeCategory10[6]}, 
+        {feature: "Monopoly", name: "Monopoly", colorIndex: d3.schemeCategory10[7]}
     ];
 
-    // set margins
-    var margin = {top: 50, right: 200, bottom: 50, left: 100},
-        width = window.innerWidth - margin.left - margin.right,
-        height = window.innerHeight - margin.top - margin.bottom; 
+    var featureCount = feature => d => d[(feature+'Count')];
+    var featureRank = feature => d => d[(feature+'Rank')];
 
     // scale x and y axis
     var xScale = d3.scaleTime()
         .domain(d3.extent(data, d=>d.date))
-        .range([0, width]); 
+        .range([0, width]);
 
-    var yScale = d3.scaleLinear()
-        .range([height, 0])
-        .domain([0, d3.max(data, d=>Math.max(
-            d["CatanCount"], d["DominionCount"], 
-            d["CodenamesCount"], d["TerraformingMarsCount"],
-            d["GloomhavenCount"], d["MagicTheGatheringCount"], 
-            d["DixitCount"], d["MonopolyCount"]))
-        ])
+    var yDomain = [
+        d3.min(data, d=>d3.min(featureList, f=>featureCount(f.feature)(d))),
+        d3.max(data, d=>d3.max(featureList, f=>featureCount(f.feature)(d))),
+    ]
 
-    // define axis
-    var xAxis = d3.axisBottom(xScale)
-        .tickFormat(d3.timeFormat("%b %y"))
-        .ticks(d3.timeMonth.every(3));
+    console.log('yDomain', yDomain)
 
-    var yAxis = d3.axisLeft(yScale).ticks(10);
+    function buildChart(plotType, chartGroup, title='Title', showRanking=true, myName="") {
 
-    const line = (feature) => d3.line()
-        .x(d=>xScale(d.date))
-        .y(d=>yScale(d[feature]));
+        var yScale;
+        
+        switch(plotType) {
+            case "linear":
+                yScale= d3.scaleLinear()
+                    .range([height, 0])
+                    .domain([0, yDomain[1]]);
+                break;
+            case "sqrt":
+                yScale= d3.scaleSqrt()
+                    .range([height, 0])
+                    .domain([0, yDomain[1]]);
+                break;
+            case "log":
+                yScale= d3.scaleLog()
+                    .range([height, 0])
+                    .domain(yDomain);
+                break;
+            default:
+                console.error("Unknown plot type");
+                return;
+        }
 
-    // get height of feature at a given index    
-    const yAnchor = (feature) => (index) => {
-        //console.log(`${feature}`, data[index][feature], yScale(data[index][feature]))
-        return yScale(data[index][feature])
-    };
+        // define axis
+        var xAxis = d3.axisBottom(xScale)
+            .tickFormat(d3.timeFormat("%b %y"))
+            .ticks(d3.timeMonth.every(3));
+
+        var yAxis = d3.axisLeft(yScale).ticks(10);
+
+        const line = (feature) => d3.line()
+            .x(d=>xScale(d.date))
+            .y(d=>yScale(featureCount(feature)(d)));
+
+        // get height of feature at a given index    
+        const xAnchor = (feature) => (index) => {
+            //console.log(`${feature}`, data[index][feature], yScale(data[index][feature]))
+            return xScale(data[index].date)
+        };
+
+        // get height of feature at a given index    
+        const yAnchor = (feature) => (index) => {
+            //console.log(`${feature}`, data[index][feature], yScale(data[index][feature]))
+            return yScale(featureCount(feature)(data[index]))
+        };
+
+        const features = chartGroup.selectAll('.feature')
+            .data(featureList)
+            .enter()
+                .append('g')
+                    .attr('data-feature', d=>d.feature)  // label this feature group
+                    .classed('feature', true);
+
+        // add feature legend
+        const featureLegend = features.append('text')
+            .attr('x', width + 15)
+            .attr('y', d=>{
+                return yAnchor(d.feature)(data.length-1)
+            })
+            .style('text-anchor', 'start')
+            .style('stroke-width', 2.5)
+            .style('fill', d=>d.colorIndex)
+            .text(d=>d.name)
+
+        // append a line for each feature
+        const featureLines = features.append('path')
+            .style('stroke', d=>d.colorIndex)
+            .style('stroke-width', 2.5)
+            .style('fill', 'none')
+            .attr('d', d=>line(d.feature)(data))
+
+        if(showRanking) {
+            const rankings = features.selectAll('.rankings')
+                .data(
+                    f=>(
+                        data.map((d, i)=>({
+                            i, date: d.date, rank: featureRank(f.feature)(d),
+                            feature: f.feature, colorIndex: f.colorIndex
+                        }))
+                            .filter((d, i)=>d.date.getMonth()%3 == 0)
+                    )
+                )
+                .enter()
+                    .append('g')
+                        .attr('transform', (d)=>
+                            `translate(${xAnchor(d.feature)(d.i)}, ${yAnchor(d.feature)(d.i)})`
+                        );
+
+            rankings.append('circle')
+                .style('fill', d=>d.colorIndex)
+                .attr('r', 10);
+
+            rankings.append('text')
+                .style('fill', 'black')
+                .style('alignment-baseline', 'middle')
+                .style('text-anchor', 'middle')
+                .attr('transform', `translate(0, 2)`)
+                .attr('font-size', '10px')
+                .text(d=>d.rank)
+
+            const legend = chartGroup.append('g')
+                .attr('transform', `translate(${width + margin.right/2 - 30},${height})`);
+
+            legend.append('circle')
+                .style('fill', d3.schemeSet3[1])
+                .attr('r', 15);
+
+            legend.append('text')
+                .style('fill', 'black')
+                .style('alignment-baseline', 'middle')
+                .style('text-anchor', 'middle')
+                .attr('transform', `translate(0, 2)`)
+                .attr('font-size', '12px')
+                .text("rank")
+
+            legend.append('text')
+                .style('fill', 'black')
+                .style('text-anchor', 'middle')
+                .attr('transform', `translate(0, 25)`)
+                .attr('font-size', '12px')
+                .style('stroke-width', 5)
+                .text("BoardGameGeek Rank")
+        }
+
+        // add x axis
+        const xAxisGroup = chartGroup.append("g")
+            .attr("id", "x_axis")
+            .attr('transform', `translate(0,${height})`)
+            .call(xAxis);
+
+        // add x axis label
+        xAxisGroup.append("text")
+            .attr("x", width/ 2 )
+            .attr("y", 35)
+            .style("stroke","none")
+            .style("fill","black")
+            .style("text-anchor", "middle")
+            .style("font-size", "16px")
+            .text("Month");
+
+        // add y axis
+        const yAxisGroup = chartGroup.append("g")
+            .attr("id", "y_axis")
+            .call(yAxis);
+
+        // add y axis label
+        yAxisGroup.append("text")
+            .attr("x", -height/2 )
+            .attr("y", -55)
+            .attr("transform", "rotate(-90)")
+            .style("stroke","none")
+            .style("fill","black")
+            .style("text-anchor", "middle")
+            .style("font-size", "16px")
+            .text("Number of Ratings");
+
+        // add title
+        chartGroup.append("text")
+            .attr("x", width/ 2 )
+            .attr("y", -15)
+            .style("font-weight","bold")
+            .style("text-anchor", "middle")
+            .style("font-size", "25px")
+            .text(title);
+
+        if(myName) {
+            console.log(myName)
+            chartGroup.append('text')
+                .attr("x", width + margin.right-20)
+                .attr("y", height + margin.bottom +20)
+                .style('text-anchor', 'end')
+                .text(myName)
+        }
+    }
         
     // figure 1
-    var svg1 = d3.select("body").append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    var svg = d3.select("body").append("svg")
+        .attr("width", (width + margin.left + margin.right))
+        .attr("height", 4*(height + margin.top + margin.bottom) +  3*offset + 60);
 
-    // add x axis
-    const xAxisGroup = svg1.append("g")
-        .attr("id", "x_axis")
-        .attr('transform', `translate(0,${height})`)
-        .call(xAxis);
+    var top = 0;
+    var chartGroup1 = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + (top +margin.top) + ")");
 
-    // add x axis label
-    xAxisGroup.append("text")
-        .attr("x", width/ 2 )
-        .attr("y", 35)
-        .style("stroke","none")
-        .style("fill","black")
-        .style("text-anchor", "middle")
-        .style("font-size", "16px")
-        .text("Month");
+    buildChart('linear', chartGroup1, 'Number of Ratings 2016 - 2020', false, false);
 
-    // add y axis
-    const yAxisGroup = svg1.append("g")
-        .attr("id", "y_axis")
-        .call(yAxis);
+    top += margin.top + height + margin.bottom + offset;
+    var chartGroup2 = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + (top +margin.top) + ")");
 
-    // add y axis label
-    yAxisGroup.append("text")
-        .attr("x", -height/2 )
-        .attr("y", -55)
-        .attr("transform", "rotate(-90)")
-        .style("stroke","none")
-        .style("fill","black")
-        .style("text-anchor", "middle")
-        .style("font-size", "16px")
-        .text("Number of Ratings");
+    buildChart('linear', chartGroup2, 'Number of Ratings 2016 - 2020 with Rankings', true, false);
 
-    // add title
-    svg1.append("text")
-        .attr("x", width/ 2 )
-        .attr("y", 0)
-        .style("font-weight","bold")
-        .style("text-anchor", "middle")
-        .style("font-size", "25px")
-        .text("Number of Ratings 2016-2020");
+    top += margin.top + height + margin.bottom;
+    var chartGroup3 = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + (top +margin.top) + ")");
 
-    const features = svg1.selectAll('.feature')
-        .data(featureList)
-        .enter()
-            .append('g')
-                .attr('data-feature', d=>d.feature)  // label this feature group
-                .classed('feature', true);
-    
-    // add feature legend
-    const featureLegend = features.append('text')
-        .attr('x', width + 15)
-        .attr('y', d=>{
-            return yAnchor(d.feature)(data.length-1)
-        })
-        .style('text-anchor', 'start')
-        .style('fill', d=>d.colorIndex)
-        .text(d=>d.name)
-    
-    // append a line for each feature
-    const featureLines = features.append('path')
-        .style('stroke', d=>d.colorIndex)
-        .style('stroke-width', 3)
-        .style('fill', 'none')
-        .attr('d', d=>line(d.feature)(data))
+    buildChart('sqrt', chartGroup3, 'Number of Ratings 2016 - 2020 (Square Root Scale)', true, false);
 
+    top += margin.top + height + margin.bottom;
+    var chartGroup4 = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + (top +margin.top) + ")");
+
+    buildChart('log', chartGroup4, 'Number of Ratings 2016 - 2020 (Log Scale)', true, "kmccanless3");
 
 });
 </script>
