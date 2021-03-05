@@ -1,10 +1,6 @@
 <!DOCTYPE html>
-<head>  
-  <title>Line Charts 2015 - 2020</title>
-  <meta charset="utf-8">
-  <script src="../lib/d3.v5.min.js"></script>
-</head>
-
+<meta charset="utf-8">
+<script src="../lib/d3.v5.min.js"></script>
 <style type="text/css">
   .line {
       fill: none;
@@ -221,6 +217,16 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
             .attr('transform', `translate(0,${height})`)
             .call(xAxis);
 
+        // add x axis label
+        xAxisGroup.append("text")
+            .attr("x", width/ 2 )
+            .attr("y", 35)
+            .style("stroke","none")
+            .style("fill","black")
+            .style("text-anchor", "middle")
+            .style("font-size", "16px")
+            .text("Month");
+
         // add y axis
         const yAxisGroup = chartGroup.append("g")
             .attr("id", "y_axis")
@@ -250,52 +256,39 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
             console.log(myName)
             chartGroup.append('text')
                 .attr("x", width + margin.right-20)
-                .attr("y", height + margin.bottom)
-                .style('alignment-baseline', 'baseline')
+                .attr("y", height + margin.bottom +20)
                 .style('text-anchor', 'end')
                 .text(myName)
         }
     }
         
     // figure 1
-    var svg1 = d3.select("body").append("svg")
+    var svg = d3.select("body").append("svg")
         .attr("width", (width + margin.left + margin.right))
-        .attr("height", height + margin.top + margin.bottom + offset)
-        .style('display', 'block')
-        .style('page-break-after', 'always');
+        .attr("height", 4*(height + margin.top + margin.bottom) +  3*offset + 60);
 
-    var chartGroup1 = svg1.append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    var top = 0;
+    var chartGroup1 = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + (top +margin.top) + ")");
+
     buildChart('linear', chartGroup1, 'Number of Ratings 2016 - 2020', false, false);
 
-    var svg2 = d3.select("body").append("svg")
-        .attr("width", (width + margin.left + margin.right))
-        .attr("height", height + margin.top + margin.bottom + offset)
-        .style('display', 'block')
-        .style('page-break-after', 'always');
+    top += margin.top + height + margin.bottom + offset;
+    var chartGroup2 = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + (top +margin.top) + ")");
 
-    var chartGroup2 = svg2.append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     buildChart('linear', chartGroup2, 'Number of Ratings 2016 - 2020 with Rankings', true, false);
 
-    var svg3 = d3.select("body").append("svg")
-        .attr("width", (width + margin.left + margin.right))
-        .attr("height", height + margin.top + margin.bottom + offset)
-        .style('display', 'block')
-        .style('page-break-after', 'always');
+    top += margin.top + height + margin.bottom;
+    var chartGroup3 = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + (top +margin.top) + ")");
 
-    var chartGroup3 = svg3.append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     buildChart('sqrt', chartGroup3, 'Number of Ratings 2016 - 2020 (Square Root Scale)', true, false);
 
-    var svg4 = d3.select("body").append("svg")
-        .attr("width", (width + margin.left + margin.right))
-        .attr("height", height + margin.top + margin.bottom + offset)
-        .style('display', 'block')
-        .style('page-break-after', 'always');
+    top += margin.top + height + margin.bottom;
+    var chartGroup4 = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + (top +margin.top) + ")");
 
-    var chartGroup4 = svg4.append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     buildChart('log', chartGroup4, 'Number of Ratings 2016 - 2020 (Log Scale)', true, "kmccanless3");
 
 });

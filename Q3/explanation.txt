@@ -1,0 +1,2 @@
+﻿Log scale: Useful to apply to dataset where some points are exponentially larger than others. It allows for a large range of values to be displayed.
+Square root scale: Useful in data visualization as it compresses larger numbers into a smaller range and allows for the presence of zero.

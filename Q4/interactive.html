@@ -8,9 +8,60 @@
 
 <body>
 
-<div id="container"></div>
+//<div id="container"></div>
 
 <script>
+// Set margins
+var margin = {top: 50, right: 200, bottom: 50, left: 100},
+    width = 980- margin.left - margin.right,
+    height = 750 - margin.top - margin.bottom,
+    offset = 10;
+
+// Read in data
+// Round average rating down to nearest integer
+d3.dsv(",", "average-rating.csv", function(d) {
+    return{
+        name: d["name"],
+        year : + d["year"],
+        avg_rating : + Math.floor(d["average_rating"]),
+        numofusers : + d["users_rated"]
+    };
+  })
+  .then(function(data) {
+
+console.log('data', data);
+console.log(d3.min(data, function(d) {return d.avg_rating}));
+console.log('min avg rating', d3.min(data, d=>d.avg_rating));
+console.log('max avg rating', d3.max(data, d=>d.avg_rating));
+console.log('min number of users', d3.min(data, d=>d.numofusers));
+console.log('max number of users', d3.max(data, d=>d.numofusers));
+
+// scale x and y axis
+    var yScale = [
+          0,
+          d3.max(data, d=>d.numofusers)
+    ]
+    var xDomain = [
+          0,
+          d3.max(data, d=>(d.avg_rating)),
+
+    ]
+console.log("x domain", xDomain);
+console.log("y scale", yScale)
+
+// define axis
+    var yScale= d3.scaleLinear()
+                  .range([height, 0])
+                  .domain([0, yDomain[1]]);
+    var xAxis = d3.axisBottom(xScale)
+
+    var yAxis = d3.axisLeft(yScale).ticks(10);
+
+
+
+})// put code in front of these brackets
+  
+
 
 </script>
 
