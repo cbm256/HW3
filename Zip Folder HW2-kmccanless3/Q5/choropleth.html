@@ -199,8 +199,6 @@
 		// also use this function to update Choropleth and legend when a different game is selected from the dropdown
         function createMapAndLegend(world, gameData, selectedGame){ 
 
-            mapGroup.selectAll("*").remove();
-            legendGroup.selectAll("*")
             console.log('selected game', selectedGame)
             let firstTime = true;
 
@@ -242,8 +240,8 @@
             const color = colorScale((prev+ratingExtent[1])/2);
             quantileRanges.push({text, color});
 
-            console.log('Quantiles', quantiles)
-            console.log("Quantile Ranges", quantileRanges)
+            console.log(quantiles)
+            console.log(quantileRanges)
             mapGroup.selectAll('.features')
                 .data(countryFeatures)
                     .enter()
@@ -256,16 +254,12 @@
                         .on('mouseover', toolTip.show)
                         .on('mouseout', toolTip.hide);
 
-           
             const legendElementGroups = legendGroup.selectAll('.legends')
                 .data(quantileRanges)
                 .enter()
                     .append('g')
                         .classed('legends', true)
                         .attr('transform', (d, i) => `translate(0,${i*25})`);
-
-            console.log(legendElementGroups.data.quantileRanges);
-
 
             legendElementGroups.append('text')
                 .attr('x', 15)
