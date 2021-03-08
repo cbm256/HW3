@@ -37,9 +37,8 @@ var parseDate = d3.timeParse("%m/%d/%Y");
 var margin = {top: 50, right: 200, bottom: 50, left: 100},
     width = 980- margin.left - margin.right,
     height = 750 - margin.top - margin.bottom,
-    offset = 10;
- 
-// read in data
+    offset = 10; 
+
 d3.dsv(",", "boardgame_ratings.csv", function(d) {
     return{
         date: parseDate(d["date"]),
@@ -63,7 +62,7 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
 })
 .then(function(data) {
 
-    // set colors for each game
+    console.log('data', data);
     const featureList = [
         {feature: "Catan", name: "Catan", colorIndex: d3.schemeCategory10[0]}, 
         {feature: "Dominion", name: "Dominion", colorIndex: d3.schemeCategory10[1]}, 
@@ -88,12 +87,12 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
         d3.max(data, d=>d3.max(featureList, f=>featureCount(f.feature)(d))),
     ]
 
-    // build function to generate charts
+    console.log('yDomain', yDomain)
+
     function buildChart(plotType, chartGroup, title='Title', showRanking=true, myName="") {
 
         var yScale;
         
-        // different scale types
         switch(plotType) {
             case "linear":
                 yScale= d3.scaleLinear()
@@ -115,7 +114,7 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
                 return;
         }
 
-        // define x and y axis
+        // define axis
         var xAxis = d3.axisBottom(xScale)
             .tickFormat(d3.timeFormat("%b %y"))
             .ticks(d3.timeMonth.every(3));
@@ -138,12 +137,11 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
             return yScale(featureCount(feature)(data[index]))
         };
 
-        // label this feature group
         const features = chartGroup.selectAll('.feature')
             .data(featureList)
             .enter()
                 .append('g')
-                    .attr('data-feature', d=>d.feature)  
+                    .attr('data-feature', d=>d.feature)  // label this feature group
                     .classed('feature', true);
 
         // add feature legend
@@ -157,14 +155,13 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
             .style('fill', d=>d.colorIndex)
             .text(d=>d.name)
 
-        // add a line for each feature
+        // append a line for each feature
         const featureLines = features.append('path')
             .style('stroke', d=>d.colorIndex)
             .style('stroke-width', 2.5)
             .style('fill', 'none')
             .attr('d', d=>line(d.feature)(data))
 
-        // show rankings in circle
         if(showRanking) {
             const rankings = features.selectAll('.rankings')
                 .data(
@@ -193,8 +190,7 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
                 .attr('transform', `translate(0, 2)`)
                 .attr('font-size', '10px')
                 .text(d=>d.rank)
-            
-            // create legend
+
             const legend = chartGroup.append('g')
                 .attr('transform', `translate(${width + margin.right/2 - 30},${height})`);
 
@@ -249,8 +245,7 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
             .style("text-anchor", "middle")
             .style("font-size", "25px")
             .text(title);
-        
-        // add GTid
+
         if(myName) {
             console.log(myName)
             chartGroup.append('text')
@@ -262,15 +257,13 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
         }
     }
         
-    // actually generate the 4 different charts
-    // create svg
+    // figure 1
     var svg1 = d3.select("body").append("svg")
         .attr("width", (width + margin.left + margin.right))
         .attr("height", height + margin.top + margin.bottom + offset)
         .style('display', 'block')
         .style('page-break-after', 'always');
 
-    // chart 1 - linear, no markers
     var chartGroup1 = svg1.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     buildChart('linear', chartGroup1, 'Number of Ratings 2016 - 2020', false, false);
@@ -281,8 +274,6 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
         .style('display', 'block')
         .style('page-break-after', 'always');
 
-
-    // chart 2 - linear, with markers
     var chartGroup2 = svg2.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     buildChart('linear', chartGroup2, 'Number of Ratings 2016 - 2020 with Rankings', true, false);
@@ -293,8 +284,6 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
         .style('display', 'block')
         .style('page-break-after', 'always');
 
-
-    // chart 3 - square root scale, with markers
     var chartGroup3 = svg3.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     buildChart('sqrt', chartGroup3, 'Number of Ratings 2016 - 2020 (Square Root Scale)', true, false);
@@ -305,7 +294,6 @@ d3.dsv(",", "boardgame_ratings.csv", function(d) {
         .style('display', 'block')
         .style('page-break-after', 'always');
 
-    // chart 4 - log scale, with markers
     var chartGroup4 = svg4.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     buildChart('log', chartGroup4, 'Number of Ratings 2016 - 2020 (Log Scale)', true, "kmccanless3");

@@ -8,56 +8,213 @@
 
 <body>
 
-//<div id="container"></div>
+<div id="container"></div>
 
 <script>
-// Set margins
-var margin = {top: 50, right: 200, bottom: 50, left: 100},
-    width = 980- margin.left - margin.right,
-    height = 750 - margin.top - margin.bottom,
-    offset = 10;
+
+  // line chart and bar chart dimensions
+  const lineChartWidth = 600;
+  const lineChartHeight = 480;
+  const lineChartMargin = {top: 40, right: 60, bottom:10, left:10};
+  
+  const offset = 10;
+  
+  const barChartWidth = 600;
+  const barChartHeight = 480;
+  const barChartMargin = {top: 10, right: 10, bottom:10, left:10};
 
 // Read in data
 // Round average rating down to nearest integer
 d3.dsv(",", "average-rating.csv", function(d) {
     return{
         name: d["name"],
-        year : + d["year"],
-        avg_rating : + Math.floor(d["average_rating"]),
-        numofusers : + d["users_rated"]
+        year : d["year"],
+        rating : +Math.floor(d["average_rating"]),
+        countOfUsersRated : +d["users_rated"]
     };
-  })
-  .then(function(data) {
+})
+.then(function(data) {
 
-console.log('data', data);
-console.log(d3.min(data, function(d) {return d.avg_rating}));
-console.log('min avg rating', d3.min(data, d=>d.avg_rating));
-console.log('max avg rating', d3.max(data, d=>d.avg_rating));
-console.log('min number of users', d3.min(data, d=>d.numofusers));
-console.log('max number of users', d3.max(data, d=>d.numofusers));
+  // console.log('data', data);
 
-// scale x and y axis
-    var yScale = [
-          0,
-          d3.max(data, d=>d.numofusers)
-    ]
-    var xDomain = [
-          0,
-          d3.max(data, d=>(d.avg_rating)),
+  const yearRatingSummary = {};
+  const keyFnc = (year, rating) => year + '_' + rating;
 
-    ]
-console.log("x domain", xDomain);
-console.log("y scale", yScale)
+  //console.log(keyFnc(2015, 7))
+  
+  // set values for the years and ratings
+  data.forEach(d => {
+    const key = keyFnc(d.year, d.rating);
 
-// define axis
-    var yScale= d3.scaleLinear()
-                  .range([height, 0])
-                  .domain([0, yDomain[1]]);
-    var xAxis = d3.axisBottom(xScale)
+    if(!yearRatingSummary[key]) yearRatingSummary[key] = {count: 0, top5: []};
 
-    var yAxis = d3.axisLeft(yScale).ticks(10);
+    yearRatingSummary[key].count += d.countOfUsersRated;
 
+    let top5Rec = {
+      game: d.name, 
+      countOfUsersRated: d.countOfUsersRated
+    };
 
+    if(yearRatingSummary[key].top5.length < 5) {
+      yearRatingSummary[key].top5.push(top5Rec)
+    } else {
+      for(let i = 0; i < 5; i++) {
+        const currentCount = yearRatingSummary[key].top5[i].countOfUsersRated;
+        if(currentCount< top5Rec.countOfUsersRated) {
+          for(let j = i; j<5; j++) {
+            const tmp = yearRatingSummary[key].top5[j];
+            yearRatingSummary[key].top5[j] = top5Rec;
+            top5Rec = tmp;
+          }
+        }
+      }
+    }
+  });
+
+  const years = [2015, 2016, 2017, 2018, 2019];
+  const ratingsArray = Array.from(Array(10).keys());
+
+  console.log('yearRatingSummary', yearRatingSummary);
+  
+  // get user count given the year and rating
+  const yearRatingCount = (year, rating) => {
+    const elem = yearRatingSummary[keyFnc(year, rating)];
+    return (elem)?elem.count: 0;
+  }
+
+  // find largest number of users for y-axis
+  const maxCount = Object.values(yearRatingSummary).reduce(
+    (acc, cur)=>Math.max(acc, cur.count), 0);
+
+  // svg dimensions
+  const svgWidth = lineChartWidth + offset + barChartWidth;
+  const svgHeight = lineChartHeight + offset + barChartHeight;
+
+  // create svg
+  const svg = d3.select('div#container').append('svg')
+    .attr('width', svgWidth)
+    .attr('height', svgHeight);
+
+  //create group for line chart
+  const lineChartGroup = svg.append('g')
+    .attr('transform', 
+      `translate(${lineChartMargin.right},${lineChartMargin.top})`
+    );
+
+  //create group for bar chart
+  const barChartGroup = svg.append('g')
+    .attr('transform', 
+      `translate(${barChartMargin.right},${lineChartMargin.top})`
+    );
+
+  // generate line chart  
+  function refresh(year, rating) {
+    //console.log('clearing bar Chart', year, rating)
+    barChartGroup.selectAll('*').remove();
+    if(year && rating) {
+      if(keyFnc(year, rating) in yearRatingSummary) {
+        barGraph(barChartGroup, year, rating);
+      } else {
+        //console.log(`no chart for (${year}, ${rating})`)
+      }
+    }
+  }
+
+  lineGraph(lineChartGroup);
+
+  function lineGraph(g) {
+    xScale = d3.scaleLinear()
+              .range([0, lineChartWidth])
+              .domain([0, 9]);
+            
+    yScale = d3.scaleLinear()
+              .range([lineChartHeight, 0])
+              .domain([0, maxCount]);
+    // x-axis          
+    g.append('g')
+      .classed('x_axis', true)
+      .attr('transform', `translate(0, ${lineChartHeight})`)
+      .call(d3.axisBottom(xScale));
+
+    // y-axis
+    g.append('g')
+      .classed('y_axis', true)
+      .call(d3.axisLeft(yScale));
+
+    const lineGroup = g.append('g');
+
+    const yearRatingsLine = year => d3.line()
+      .x(rating=>xScale(rating))
+      .y(rating=>yScale(yearRatingCount(year, rating)));
+    
+    const yearLineGroup =  lineGroup.selectAll('.year-line-grp')
+      .data(years) // bind data
+      .enter()
+      .append('g');
+
+    yearLineGroup.append('path')
+      .style('stroke', (d, i) => d3.schemeCategory10[i]) 
+      .style('fill', 'none')
+      .attr('d', y=>{
+        return yearRatingsLine(y)(ratingsArray) 
+      });
+    
+    // circle markers for each rating for each line
+    const yearRatingMarkerGroups = yearLineGroup.append('g');
+    yearRatingMarkerGroups.selectAll('.marker')
+      .data((year, indx)=> ratingsArray.map(rating=>({year, rating, indx})))
+      .enter()
+        .append('circle')
+          .attr('cx', d=>xScale(d.rating))
+          .attr('cy', d=>yScale(yearRatingCount(d.year, d.rating)))
+          .attr('r', 4)
+          .style('fill', d=>d3.schemeCategory10[d.indx])
+          .on('mouseover', d=> refresh(d.year, d.rating))
+          .on('mouseout', d=> refresh());
+    
+    // create legand group
+    const legendGroup = g.append('g')
+      .attr('transform', `translate(${lineChartWidth +10}, ${50})`);
+
+    const legendYearGroup = legendGroup.selectAll('.legend-year')
+      .data(years)
+      .enter()
+      .append('g')
+        .attr('transform', (d, i) => `translate(0, ${20*i})`);
+    
+    legendYearGroup.append('circle')
+      .attr('cx', 0)
+      .attr('cy', -4)
+      .attr('r', 4)
+      .style('fill', (d, i)=>d3.schemeCategory10[i])
+
+    legendYearGroup.append('text')
+      .attr('x', 10)
+      .text(y=>y)
+    
+    // create title group and gt id
+    const titleX = (lineChartWidth + 100)/2;
+    const titleY = -lineChartMargin.top/2;
+
+    const titleGroup = yearLineGroup.append('g')
+      .attr('transform', `translate(${titleX}, ${titleY})`)
+      .style('font-size', 18);     
+
+      titleGroup.append('text')
+      .attr('y', 0)
+      .style('text-anchor', 'middle')
+      .text("Board Games by Rating 2015 - 2019")
+
+      titleGroup.append('text')
+      .attr('y', 24)
+      .style('text-anchor', 'middle')
+      .text("kmccanless3")
+  }
+
+  // create hover bar graph 
+  function barGraph(g, year, rating) {
+    console.log(`drawing bargraph for (${year}, ${rating})`)
+  }
 
 })// put code in front of these brackets
   

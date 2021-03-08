@@ -40,7 +40,7 @@
 	
 		// enter code to define margin and dimensions for svg
         
-        var svgWidth = 980;
+        var svgWidth = 1200;
         var svgHeight = 750;
         var mapMargin ={top: 15, right: 200, bottom: 20, left: 15};
 
@@ -50,12 +50,14 @@
         var offset = 10;
         
 		// enter code to create svg
+
         var svg = d3.select('body').append('svg')
                     .attr("width", svgWidth)
                     .attr("height", svgHeight)
                     .style('margin-left', 10)
                     .style('margin-top', 10)
                     .style('display', 'block');
+
          
         var mapGroup = svg.append('g')
             .attr('transform', `translate(${mapMargin.left}, ${mapMargin.top})`);
@@ -64,30 +66,13 @@
             .attr('transform', 
                 `translate(${mapMargin.left + mapWidth + 10}, ${mapMargin.top + 50})`);
 		
-        /*
-        svg.append('rect')
-            .attr('x', 0)
-            .attr('y', 0)
-            .attr('width', svgWidth)
-            .attr('height', svgHeight)
-            .style('fill', 'none')
-            .style('stroke-width', 2)
-            .style('stroke', 'lightgrey')
-		
-        mapGroup.append('rect')
-            .attr('x', 0)
-            .attr('y', 0)
-            .attr('width', mapWidth)
-            .attr('height', mapHeight)
-            .style('fill', 'none')
-            .style('stroke-width', 2)
-            .style('stroke', 'lightpink') */
-
 		// enter code to create color scale
-        const colorRange = ['#e00','#a00',  '#800','#500'];  // TODO add 4 colors
+
+        const colorRange = ['#e00','#a00',  '#800','#500']; 
         const colorMapper = scale => val => (val)?scale(val): "grey";
 
 		// enter code to define tooltip
+
         const toolTip = d3.tip()
             .attr('class', 'd3-tip')
             .html(d=> {
@@ -117,10 +102,12 @@
                 </ul>
                 `:undefined
             });
-
-        mapGroup.call(toolTip);
         
+        // add tool tip to the map
+        mapGroup.call(toolTip);
+
 		// enter code to define projection and path required for Choropleth
+
         const mercatorProj = d3.geoMercator()
             .scale([120])
             .translate([mapWidth/2, mapHeight/2+50]);
@@ -128,18 +115,18 @@
         const featurePathGen = d3.geoPath().projection(mercatorProj);
 
 		// define any other global variables
+
         const countryName = f=>f.properties.name;
         const ratingFnc = (gameName, data) => countryName => {
             const d = data.find(g=>(g.game===gameName && g.country==countryName));
-
             return (d)?d.rating: undefined;
         }
         const numUsersFnc = (gameName, data) => countryName => {
             const d = data.find(g=>(g.game===gameName && g.country==countryName));
-            
             return (d)?d.numUsers: undefined;
         }
 
+        // enter data files
         Promise.all([
             d3.json('world_countries.json'),
 			d3.dsv(',', 'ratings-by-country.csv', function(d){
@@ -176,6 +163,7 @@
             games.sort();
 
             // enter code to append the game options to the dropdown
+
             const gameSelect = d3.select('#game-select')
                 .on("change", gameSelectionChanged);
             
@@ -186,6 +174,7 @@
                         .text(d=>d);
 			
             // event listener for the dropdown. Update choropleth and legend when selection changes. Call createMapAndLegend() with required arguments.
+
 			function gameSelectionChanged() {
                 console.log("game Selection changed to: ", this.value);
                 createMapAndLegend(world, gameData, this.value);
@@ -197,6 +186,7 @@
 
 		// this function should create a Choropleth and legend using the world and gameData arguments for a selectedGame
 		// also use this function to update Choropleth and legend when a different game is selected from the dropdown
+        
         function createMapAndLegend(world, gameData, selectedGame){ 
 
             mapGroup.selectAll("*").remove();
@@ -217,7 +207,7 @@
                     ...f
                 }));
 
-			// to define our color scale based on the game Selected
+			// define color scale based on the game Selected
             const ratingExtent = d3.extent(countryFeatures, f=>rating(countryName(f)));
             console.log('ratings extent', ratingExtent);
 
@@ -226,12 +216,12 @@
                     .domain(ratingExtent);
 
             const colorScale = colorMapper(quantileScaling);
-
             const quantiles = quantileScaling.quantiles();
 
             let prev = ratingExtent[0];
             const quantileRanges = []
-
+            
+            // set quantiles values and color scale
             quantiles.forEach(val=> {
                 const text = "" + prev.toFixed(2) + ' - ' + val.toFixed(2);
                 const color = colorScale((prev+val)/2);
@@ -242,8 +232,10 @@
             const color = colorScale((prev+ratingExtent[1])/2);
             quantileRanges.push({text, color});
 
-            console.log('Quantiles', quantiles)
-            console.log("Quantile Ranges", quantileRanges)
+            //console.log('Quantiles', quantiles)
+            //console.log("Quantile Ranges", quantileRanges)
+            
+            // add map 
             mapGroup.selectAll('.features')
                 .data(countryFeatures)
                     .enter()
@@ -255,8 +247,17 @@
                         .style('fill', f=>colorScale(rating(countryName(f))))
                         .on('mouseover', toolTip.show)
                         .on('mouseout', toolTip.hide);
+                
+            //add GTid
+            mapGroup.append("text")
+                .attr("id", "credit")
+                .attr("x", mapWidth)
+                .attr("y", mapHeight)
+                .style('text-anchor', 'end')
+                .style("font-size", "20px")
+                .text("kmccanless3");
 
-           
+            // create legend group
             const legendElementGroups = legendGroup.selectAll('.legends')
                 .data(quantileRanges)
                 .enter()
@@ -264,20 +265,22 @@
                         .classed('legends', true)
                         .attr('transform', (d, i) => `translate(0,${i*25})`);
 
-            console.log(legendElementGroups.data.quantileRanges);
+            //console.log(legendElementGroups.data.quantileRanges);
 
-
+            // add legend text
             legendElementGroups.append('text')
                 .attr('x', 15)
                 .style('align-baseline', 'middle')
                 .text(d=>d.text);
 
+            // add legend colors
             legendElementGroups.append('rect')
                 .attr('y', -10)
                 .attr('width', 10)
                 .attr('height', 10)
                 .style('fill', d=>d.color);
         }
+
     </script>
 
 </body>
